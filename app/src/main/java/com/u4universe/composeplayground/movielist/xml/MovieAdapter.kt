@@ -10,8 +10,11 @@ import com.u4universe.composeplayground.data.Movie
 import com.u4universe.composeplayground.databinding.MovieItemBinding
 
 class MovieAdapter(
-    private var moviesList: List<Movie>, private val onFavoriteToggle: (Int) -> Unit
+    private var moviesList: List<Movie>,
+    private val onFavoriteClick: (Int) -> Unit,
+    private val onMovieItemClick: (Movie) -> Unit
 ) : RecyclerView.Adapter<MovieViewHolder>() {
+
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
@@ -25,7 +28,11 @@ class MovieAdapter(
         position: Int
     ) {
         val movie = moviesList[position]
-        holder.bind(movie, onFavoriteToggle)
+        holder.bind(
+            movie,
+            onFavoriteClick,
+            onMovieItemClick
+        )
     }
 
     override fun getItemCount() = moviesList.size
@@ -39,7 +46,7 @@ class MovieAdapter(
 class MovieViewHolder(private val binding: MovieItemBinding) :
     RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(movie: Movie, onFavoriteToggle: (Int) -> Unit) {
+    fun bind(movie: Movie, onFavoriteToggle: (Int) -> Unit, onMovieItemClick: (Movie) -> Unit) {
         with(binding) {
             movieTitle.text = movie.title
             movieYear.text = movie.year.toString()
@@ -55,6 +62,9 @@ class MovieViewHolder(private val binding: MovieItemBinding) :
             updateFavoriteIcon(isFavorite = movie.isFavorite)
             favoriteButton.setOnClickListener {
                 onFavoriteToggle(movie.id)
+            }
+            root.setOnClickListener {
+                onMovieItemClick(movie)
             }
         }
     }

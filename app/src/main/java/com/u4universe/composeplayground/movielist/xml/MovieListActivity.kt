@@ -1,6 +1,7 @@
 package com.u4universe.composeplayground.movielist.xml
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -10,13 +11,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.u4universe.composeplayground.databinding.ActivityMovieListBinding
-import com.u4universe.composeplayground.movielist.MovieListVM
+import com.u4universe.composeplayground.movielist.MovieListUiState
+import com.u4universe.composeplayground.movielist.MoviesListViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MovieListActivity : AppCompatActivity() {
 
-    private val viewModel: MovieListVM by viewModels()
+    private val viewModel: MoviesListViewModel by viewModels()
     private lateinit var moviesAdapter: MovieAdapter
 
     private val binding: ActivityMovieListBinding by lazy {
@@ -33,17 +35,55 @@ class MovieListActivity : AppCompatActivity() {
             insets
         }
 
-        moviesAdapter = MovieAdapter(emptyList()) { movieId ->
-            viewModel.updateFavorite(movieId)
-        }
+        moviesAdapter = MovieAdapter(
+            emptyList(),
+            onFavoriteClick = { movieId ->
+                viewModel.updateFavorite(movieId)
+            },
+            onMovieItemClick = { movie ->
+                viewModel.handleMovieClick(movie)
+            })
         binding.rvMovies.adapter = moviesAdapter
+        binding.btnRetry.setOnClickListener {
+            viewModel.fetchMovies()
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.moviesLIst.collectLatest {
-                    moviesAdapter.updateMoviesList(it)
+                viewModel.moviesListState.collectLatest {
+                    updateMovies(it)
                 }
             }
         }
     }
+
+    private fun updateMovies(uiState: MovieListUiState) = when (uiState) {
+        MovieListUiState.Loading -> {
+            binding.loadingIndicator.show()
+            binding.rvMovies.hide()
+            binding.errorLayout.hide()
+        }
+
+        is MovieListUiState.Error -> {
+            binding.loadingIndicator.hide()
+            binding.rvMovies.hide()
+            binding.tvError.text = uiState.message
+            binding.errorLayout.show()
+        }
+
+        is MovieListUiState.Success -> {
+            binding.loadingIndicator.hide()
+            binding.errorLayout.hide()
+            binding.rvMovies.show()
+            moviesAdapter.updateMoviesList(uiState.movies)
+        }
+    }
+}
+
+fun View.show() {
+    this.visibility = View.VISIBLE
+}
+
+fun View.hide() {
+    this.visibility = View.GONE
 }
